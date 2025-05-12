@@ -68,22 +68,28 @@
         // --- PWA: Service Worker Registration ---
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                // Dynamically determine the base path for registration
-                // This helps on platforms like GitHub Pages where the app might not be at the root
-                const baseHref = document.baseURI || window.location.href; // Get base URL
-                const swUrl = new URL('sw.js', baseHref); // Resolve sw.js relative to the base URL
+                const baseHref = document.baseURI || window.location.href;
+                const swUrl = new URL('sw.js', baseHref);
 
-                console.log(`Attempting to register Service Worker at: ${swUrl.href}`); // Log the URL being used
+                // Calculate the scope based on the current path
+                // For https://user.github.io/repo/, scope should be /repo/
+                // For https://user.github.io/repo/index.html, scope should be /repo/
+                let scope = new URL('.', baseHref).pathname; // Get the directory path
+                 // Ensure scope ends with a slash if it's not just '/'
+                if (!scope.endsWith('/') && scope !== '/') {
+                     scope += '/';
+                }
 
-                navigator.serviceWorker.register(swUrl.href) // Use the resolved full URL
+                console.log(`Attempting to register Service Worker at: ${swUrl.href} with scope: ${scope}`);
+
+                navigator.serviceWorker.register(swUrl.href, { scope: scope }) // Explicitly set the scope
                     .then(registration => {
                         console.log('ServiceWorker registration successful with scope: ', registration.scope);
                         statusMessage.textContent = 'Service Worker登録成功。オフライン対応準備完了。';
                     })
                     .catch(error => {
-                        console.error('ServiceWorker registration failed: ', error); // Log the full error object
-                        // Provide more specific error if possible
-                        statusMessage.textContent = `Service Worker登録失敗: ${error.message}。オフライン機能は利用できません。`;
+                        console.error('ServiceWorker registration failed: ', error);
+                        statusMessage.textContent = `Service Worker登録失敗: ${error.message}。スコープ: ${scope}。オフライン機能は利用できません。`; // Add scope info to error
                     });
             });
         } else {
